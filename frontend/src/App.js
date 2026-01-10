@@ -1,25 +1,34 @@
-import logo from './logo.svg';
-import './App.css';
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import Login from "./pages/Login/Login";
+import Home from "./pages/Home/Home";
+import Group from "./pages/Group/Group";
+import CreateGroup from "./pages/CreateGroup/CreateGroup";
+import JoinGroup from "./pages/JoinGroup/JoinGroup";
+import GroupSettings from "./pages/GroupSettings/GroupSettings";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+
+      <Route path="/" element={<Login />} />
+
+
+      <Route path="/home" element={<Home />} />
+
+
+      <Route path="/group/:id" element={<Group />} />
+      <Route path="/group/:id/settings" element={<GroupSettings />} />
+
+
+      <Route path="/create-group" element={<CreateGroup />} />
+      <Route path="/join-group" element={<JoinGroup />} />
+
+
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 }
 
 export default App;
+
