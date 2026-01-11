@@ -33,3 +33,28 @@ export const groupsDB = [
     }
 ];
 
+export const photosDB = [
+    {
+        photoId: 1,
+        groupId: 1,
+        url: "/mock/photos/1.jpg",
+        uploadedBy: 1, // userId
+        uploadedAt: "2026-01-10T10:30:00"
+    },
+    {
+        photoId:2,
+        groupId: 1,
+        url: "/mock/photos/2.jpg",
+        uploadedBy: 1,
+        uploadedAt: "2026-01-11T14:15:00"
+    },
+    {
+        photoId:3,
+        groupId: 2,
+        url: "/mock/photos/3.jpg",
+        uploadedBy: 3,
+        uploadedAt: "2026-01-12T09:00:00"
+    }
+];
+
+

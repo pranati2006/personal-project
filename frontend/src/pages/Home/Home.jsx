@@ -38,6 +38,10 @@ const GroupsList = () => {
         setShowMenu((prev) => !prev);
     };
 
+    const handleOpen = (groupId) => {
+        navigate(`/group/${groupId}`);
+    }
+
     return (
         <div className="groups-container">
             <div className="groups-actions">
@@ -67,7 +71,7 @@ const GroupsList = () => {
             <div className="groups-list">
                 {getUserGroups(user.id).map((group) => (
                     <div key={group.groupId} className="group-item">
-                        <span className="group-name">{group.groupName}</span>
+                        <span className="group-name" onClick={() => handleOpen(group.groupId)}>{group.groupName}</span>
                         <div className="group-item-actions">
                             <button className="btn delete-btn" onClick={() => handleLeave(group.groupId)}>Leave</button>
                             <button className="btn edit-btn" onClick={() => handleEdit(group.groupId)}>Edit</button>

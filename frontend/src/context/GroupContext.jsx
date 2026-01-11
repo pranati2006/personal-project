@@ -1,6 +1,6 @@
 // src/context/GroupContext.js
 import React, { createContext, useState } from "react";
-import { usersDB, groupsDB } from "../mock/data";
+import { usersDB, groupsDB, photosDB } from "../mock/data";
 
 export const GroupContext = createContext();
 
@@ -9,6 +9,7 @@ export const GroupProvider = ({ children }) => {
     // simulate DB tables in memory
     const [users, setUsers] = useState(usersDB);
     const [groups, setGroups] = useState(groupsDB);
+    const [photos, setPhotos] = useState(photosDB);
 
     // helper: get groups of a user
     const getUserGroups = (userId) => {
@@ -141,10 +142,39 @@ export const GroupProvider = ({ children }) => {
         );
     };
 
+    // Get all photos of a group
+    const getGroupPhotos = (groupId) => {
+        return photos.filter(photo => photo.groupId === groupId);
+    };
+
+    //add photos to a group
+    const addPhotosToGroup = ({ groupId, photoUrls, uploadedBy }) => {
+        const newPhotos = photoUrls.map(url => ({
+            photoId: Date.now() + Math.random(), // ensure uniqueness
+            groupId,
+            url,
+            uploadedBy,
+            uploadedAt: new Date().toISOString()
+        }));
+
+        setPhotos(prev => [...prev, ...newPhotos]);
+    };
+
+    // Delete selected photos from a group
+    const deletePhotosFromGroup = (photoIds) => {
+        setPhotos(prev =>
+            prev.filter(photo => !photoIds.includes(photo.photoId))
+        );
+    };
+
     return (
         <GroupContext.Provider value={{
             users,
             groups,
+            photos,
+            getGroupPhotos,
+            addPhotosToGroup,
+            deletePhotosFromGroup,
             getUserGroups,
             createGroup,
             joinGroup,
