@@ -160,7 +160,7 @@ export const GroupProvider = ({ children }) => {
         setPhotos(prev => [...prev, ...newPhotos]);
     };
 
-    // Delete selected photos from a group
+    // Delete selected photos from a group (add groupid)
     const deletePhotosFromGroup = (photoIds) => {
         setPhotos(prev =>
             prev.filter(photo => !photoIds.includes(photo.photoId))

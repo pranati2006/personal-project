@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { GroupContext } from "../../context/GroupContext";
 import { AuthContext } from "../../context/AuthContext";
 import DeleteOverlay from "../../components/ConfirmDelete/ConfirmDelete";
+import PhotoCard from "../../components/PhotoCard/PhotoCard";
 
 const GroupGallery = () => {
     const { id } = useParams();
@@ -18,6 +19,7 @@ const GroupGallery = () => {
     const [deleteMode, setDeleteMode] = useState(false);
     const [selectedPhotos, setSelectedPhotos] = useState([]);
     const [showDeleteOverlay, setShowDeleteOverlay] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(null);
 
     if (!group) {
         return <div>Group not found</div>;
@@ -36,6 +38,9 @@ const GroupGallery = () => {
         setSelectedPhotos([]);
         setDeleteMode(false);
         setShowDeleteOverlay(false);
+        if (selectedIndex !== null) {
+            closePhoto();
+        }
     };
 
     const handleAddPhotos = (e) => {
@@ -55,11 +60,28 @@ const GroupGallery = () => {
         e.target.value = null; // reset input
     };
 
-    const handlePhotoClick = (photo, index) => {
+    const handlePhotoClick = (index) => {
         if (deleteMode) return;
 
-        alert("Open PhotoCard", photo, "index:", index);
+        setSelectedIndex(index);
     };
+
+    const closePhoto = () => {
+        setSelectedIndex(null);
+    };
+
+    const nextPhoto = () => {
+        setSelectedIndex((i) => (i + 1) % photos.length);
+    };
+
+    const prevPhoto = () => {
+        setSelectedIndex((i) => (i - 1 + photos.length) % photos.length);
+    };
+
+    const handleDelete = (photoId) => {
+        setSelectedPhotos([photoId]);
+        setShowDeleteOverlay(true);
+    }
 
     /* ---------------- UI ---------------- */
 
@@ -95,7 +117,7 @@ const GroupGallery = () => {
                         <img
                             src={photo.url}
                             alt="group"
-                            onClick={() => handlePhotoClick(photo, index)}
+                            onClick={() => handlePhotoClick(index)}
                         />
                     </div>
                 ))}
@@ -134,6 +156,18 @@ const GroupGallery = () => {
                     </button>
                 )}
             </div>
+
+            {selectedIndex !== null && (
+                <PhotoCard
+                    photo={photos[selectedIndex]}
+                    onClose={closePhoto}
+                    onNext={nextPhoto}
+                    onPrev={prevPhoto}
+                    onDelete={() => handleDelete(photos[selectedIndex].photoId)}
+                />
+            )}
+
+
 
             {/* Delete Confirmation */}
             {showDeleteOverlay && (
