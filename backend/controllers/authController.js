@@ -5,8 +5,13 @@ exports.login = (req, res) => {
     const sql = 'SELECT * FROM users WHERE name = ? AND password = ?';
     db.query(sql, [username, password], (err, results) => {
         if (err) return res.status(500).json({ success: false, error: err });
-        if (results.length > 0) res.json({ success: true });
-        else res.json({ success: false });
+
+        if (results.length > 0) {
+            const user = { id: results[0].id, name: results[0].name };
+            res.json({ success: true, user });
+        } else {
+            res.json({ success: false, error: 'Invalid username or password' });
+        }
     });
 };
 
