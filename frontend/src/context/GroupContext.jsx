@@ -1,183 +1,207 @@
 // src/context/GroupContext.js
-import React, { createContext, useState } from "react";
-import { usersDB, groupsDB, photosDB } from "../mock/data";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { AuthContext } from "./AuthContext";
+
 
 export const GroupContext = createContext();
 
 export const GroupProvider = ({ children }) => {
 
     // simulate DB tables in memory
-    const [users, setUsers] = useState(usersDB);
-    const [groups, setGroups] = useState(groupsDB);
-    const [photos, setPhotos] = useState(photosDB);
+    const { user } = useContext(AuthContext);
+    const [groups, setGroups] = useState([]);
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [photos, setPhotos] = useState([]);
+
+    useEffect(() => {
+        if (user) {
+            fetchGroups();
+        } else {
+            setGroups([]);
+            setSelectedGroup(null);
+        }
+    }, [user]);
 
     // helper: get groups of a user
-    const getUserGroups = (userId) => {
-        const user = users.find(u => u.userId === userId);
-        if (!user) return [];
+    const fetchGroups = async () => {
+        try {
+            const res = await fetch(
+                `http://localhost:5000/api/groups/${user.id}`
+            );
+            const data = await res.json();
 
-        return groups.filter(g => user.groupIds.includes(g.groupId));
+            if (data.success) {
+                setGroups(data.groups);
+            }
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     // CREATE GROUP
-    const createGroup = ({ groupName, groupCode, userId }) => {
-        const newGroupId = Date.now();
+    const createGroup = async (groupName, groupCode) => {
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/groups/create",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        group_name: groupName,
+                        group_password: groupCode,
+                        user_id: user.id
+                    })
+                }
+            );
 
-        const newGroup = {
-            groupId: newGroupId,
-            groupName,
-            groupCode,
-            userIds: [userId]
-        };
+            const data = await res.json();
 
-        setGroups(prev => [...prev, newGroup]);
+            if (data.success) {
+                fetchGroups(); // refresh
+                return { success: true };
+            }
 
-        setUsers(prev =>
-            prev.map(u =>
-                u.userId === userId
-                    ? { ...u, groupIds: [...u.groupIds, newGroupId] }
-                    : u
-            )
-        );
+            return { success: false, error: data.error };
+
+        } catch (err) {
+            console.error(err);
+            return { success: false, error: "Server error" };
+        }
     };
 
     // JOIN GROUP
-    const joinGroup = ({ groupName, groupCode, userId }) => {
-        const group = groups.find(
-            g => g.groupName === groupName && g.groupCode === groupCode
-        );
+    const joinGroup = async (groupName, groupCode) => {
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/groups/join",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        group_name: groupName,
+                        group_password: groupCode,
+                        user_id: user.id
+                    })
+                }
+            );
 
-        if (!group) return { success: false, message: "Group not found" };
+            const data = await res.json();
 
-        // already joined?
-        if (group.userIds.includes(userId)) {
-            return { success: false, message: "Already a member" };
+            if (data.success) {
+                fetchGroups(); // refresh
+                return { success: true };
+            }
+
+            return { success: false, error: data.error };
+
+        } catch (err) {
+            console.error(err);
+            return { success: false, error: "Server error" };
         }
-
-        // update group
-        setGroups(prev =>
-            prev.map(g =>
-                g.groupId === group.groupId
-                    ? { ...g, userIds: [...g.userIds, userId] }
-                    : g
-            )
-        );
-
-        // update user
-        setUsers(prev =>
-            prev.map(u =>
-                u.userId === userId
-                    ? { ...u, groupIds: [...u.groupIds, group.groupId] }
-                    : u
-            )
-        );
-
-        return { success: true };
     };
 
     // DELETE GROUP
-    const deleteGroup = (groupId) => {
-        // remove group
-        setGroups(prev => prev.filter(g => g.groupId !== groupId));
+    const deleteGroup = async (groupId) => {
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/groups/delete",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ group_id: groupId })
+                }
+            );
 
-        // remove groupId from all users
-        setUsers(prev =>
-            prev.map(u => ({
-                ...u,
-                groupIds: u.groupIds.filter(id => id !== groupId)
-            }))
-        );
+            const data = await res.json();
+
+            if (data.success) {
+                fetchGroups();
+                setSelectedGroup(null);
+                return { success: true };
+            }
+
+            return { success: false, error: data.error };
+
+        } catch (err) {
+            console.error(err);
+            return { success: false, error: "Server error" };
+        }
     };
 
     //LEAVE GROUP
-    const leaveGroup = ({ groupId, userId }) => {
-        setGroups(prevGroups =>
-            prevGroups
-                .map(group =>
-                    group.groupId === groupId
-                        ? {
-                            ...group,
-                            userIds: group.userIds.filter(id => id !== userId)
-                        }
-                        : group
-                )
-        );
+    const leaveGroup = async (groupId) => {
+        try {
+            const res = await fetch(
+                "http://localhost:5000/api/groups/leave",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        group_id: groupId,
+                        user_id: user.id
+                    })
+                }
+            );
 
-        setUsers(prevUsers =>
-            prevUsers.map(user =>
-                user.userId === userId
-                    ? {
-                        ...user,
-                        groupIds: user.groupIds.filter(id => id !== groupId)
-                    }
-                    : user
-            )
-        );
+            const data = await res.json();
+
+            if (data.success) {
+                fetchGroups();
+                setSelectedGroup(null);
+                return { success: true };
+            }
+
+            return { success: false, error: data.error };
+
+        } catch (err) {
+            console.error(err);
+            return { success: false, error: "Server error" };
+        }
     };
 
 
     // EDIT GROUP (name / code / remove users)
-    const editGroup = ({ groupId, groupName, groupCode, removeUserIds = [] }) => {
-        // update group
-        setGroups(prev =>
-            prev.map(g =>
-                g.groupId === groupId
-                    ? {
-                        ...g,
-                        groupName: groupName ?? g.groupName,
-                        groupCode: groupCode ?? g.groupCode,
-                        userIds: g.userIds.filter(id => !removeUserIds.includes(id))
-                    }
-                    : g
-            )
-        );
+    const editGroup = async ({ groupId, groupName, groupCode, removeUserIds = [] }) => {
+        try {
+            const res = await fetch("http://localhost:5000/api/groups/edit", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    groupId,
+                    groupName,
+                    groupCode,
+                    removeUserIds
+                })
+            });
 
-        // update users
-        setUsers(prev =>
-            prev.map(u =>
-                removeUserIds.includes(u.userId)
-                    ? { ...u, groupIds: u.groupIds.filter(id => id !== groupId) }
-                    : u
-            )
-        );
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message);
+            }
+
+            // Refresh groups after edit
+            await fetchUserGroups();
+
+            return { success: true };
+        } catch (error) {
+            console.error(error);
+            return { success: false, message: error.message };
+        }
     };
 
-    // Get all photos of a group
-    const getGroupPhotos = (groupId) => {
-        return photos.filter(photo => photo.groupId === groupId);
-    };
-
-    //add photos to a group
-    const addPhotosToGroup = ({ groupId, photoUrls, uploadedBy }) => {
-        const newPhotos = photoUrls.map(url => ({
-            photoId: Date.now() + Math.random(), // ensure uniqueness
-            groupId,
-            url,
-            uploadedBy,
-            uploadedAt: new Date().toISOString()
-        }));
-
-        setPhotos(prev => [...prev, ...newPhotos]);
-    };
-
-    // Delete selected photos from a group (add groupid)
-    const deletePhotosFromGroup = (photoIds) => {
-        setPhotos(prev =>
-            prev.filter(photo => !photoIds.includes(photo.photoId))
-        );
-    };
 
     return (
         <GroupContext.Provider value={{
-            users,
             groups,
-            photos,
-            getGroupPhotos,
-            addPhotosToGroup,
-            deletePhotosFromGroup,
-            getUserGroups,
+            selectedGroup,
+            setSelectedGroup,
             createGroup,
             joinGroup,
+            fetchGroups,
+
             deleteGroup,
             editGroup,
             leaveGroup

@@ -3,17 +3,36 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { GroupContext } from "../../context/GroupContext";
 import DeleteOverlay from "../../components/ConfirmDelete/ConfirmDelete";
+import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
+import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
 
 const GroupsList = () => {
     const navigate = useNavigate();
     const { user, logout } = useContext(AuthContext);
-    const { getUserGroups, leaveGroup } = useContext(GroupContext);
+    const { groups, leaveGroup } = useContext(GroupContext);
     const [showMenu, setShowMenu] = useState(false); // toggle menu for create and join
     const [showDeleteOverlay, setShowDeleteOverlay] = useState(false);
     const [groupIdToDelete, setGroupIdToDelete] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+
+
     const handleLeave = (groupId) => {
         setGroupIdToDelete(groupId);
         setShowDeleteOverlay(true);
+    };
+
+    const handleConfirmLeave = async () => {
+        setShowDeleteOverlay(false);
+        setLoading(true);
+        const result = await leaveGroup(groupIdToDelete);
+        setLoading(false);
+        if (result.success) {
+            setMessage(`Successfully left group!`);
+        } else {
+            setMessage(`Failed to leave group: ${result.error}`);
+        }
+        setGroupIdToDelete(null);
     };
 
     const handleEdit = (groupId) => {
@@ -44,14 +63,17 @@ const GroupsList = () => {
 
     return (
         <div className="groups-container">
+            {loading && <LoadingOverlay />}
+            {message && (
+                <MessageOverlay
+                    message={message}
+                    onClose={() => setMessage("")}
+                />
+            )}
             <div className="groups-actions">
                 {showDeleteOverlay && (
                     <DeleteOverlay
-                        onConfirm={() => {
-                            leaveGroup({ groupId: groupIdToDelete, userId: user.id });
-                            setShowDeleteOverlay(false);
-                            setGroupIdToDelete(null);
-                        }}
+                        onConfirm={handleConfirmLeave}
                         onCancel={() => setShowDeleteOverlay(false)}
                     />
                 )}
@@ -69,12 +91,12 @@ const GroupsList = () => {
             </div>
 
             <div className="groups-list">
-                {getUserGroups(user.id).map((group) => (
-                    <div key={group.groupId} className="group-item">
-                        <span className="group-name" onClick={() => handleOpen(group.groupId)}>{group.groupName}</span>
+                {groups.map((group) => (
+                    <div key={group.group_id} className="group-item">
+                        <span className="group-name" onClick={() => handleOpen(group.group_id)}>{group.group_name}</span>
                         <div className="group-item-actions">
-                            <button className="btn delete-btn" onClick={() => handleLeave(group.groupId)}>Leave</button>
-                            <button className="btn edit-btn" onClick={() => handleEdit(group.groupId)}>Edit</button>
+                            <button className="btn delete-btn" onClick={() => handleLeave(group.group_id)}>Leave</button>
+                            <button className="btn edit-btn" onClick={() => handleEdit(group.group_id)}>Edit</button>
                         </div>
                     </div>
                 ))}
