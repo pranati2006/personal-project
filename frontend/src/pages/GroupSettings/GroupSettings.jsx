@@ -1,7 +1,10 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState,useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { GroupContext } from "../../context/GroupContext";
 import DeleteOverlay from "../../components/ConfirmDelete/ConfirmDelete";
+import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
+import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
+import { fetchGroupMembers } from "../../context/GroupAPI";
 
 const EditGroup = () => {
     const { id } = useParams();
@@ -9,18 +12,39 @@ const EditGroup = () => {
 
     const { groups, users, editGroup, deleteGroup } = useContext(GroupContext);
 
-    const group = groups.find(g => g.groupId === Number(id));
+    // ⚠ Match DB structure
+    const group = groups.find(g => g.group_id === Number(id));
 
-    const [groupName, setGroupName] = useState(group ? group.groupName : "");
-    const [groupCode, setGroupCode] = useState(group ? group.groupCode : "");
+    const [groupName, setGroupName] = useState(group ? group.group_name : "");
+    const [groupCode, setGroupCode] = useState(group ? group.group_code : "");
     const [removeUserIds, setRemoveUserIds] = useState([]);
     const [showDeleteOverlay, setShowDeleteOverlay] = useState(false);
+    const [members, setMembers] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        const loadMembers = async () => {
+            setLoading(true);
+
+            const result = await fetchGroupMembers(id);
+
+            setLoading(false);
+
+            if (!result.success) {
+                setMessage(result.error);
+                return;
+            }
+
+            setMembers(result.members);
+        };
+
+        loadMembers();
+    }, [id]);
 
     if (!group) {
         return <div>Group not found</div>;
     }
-
-    const members = users.filter(u => group.userIds.includes(u.userId));
 
     const toggleRemoveUser = (userId) => {
         setRemoveUserIds(prev =>
@@ -30,23 +54,62 @@ const EditGroup = () => {
         );
     };
 
-    const handleSave = () => {
-        editGroup({
-            groupId: group.groupId,
+    const handleSave = async () => {
+        setLoading(true);
+
+        const result = await editGroup({
+            groupId: group.group_id,
             groupName,
             groupCode,
             removeUserIds
         });
-        navigate("/");
+
+        setLoading(false);
+
+        if (!result.success) {
+            setMessage(result.error || "Failed to update group.");
+            return;
+        }
+
+        setMessage("Group updated successfully!");
+
+        setTimeout(() => {
+            navigate("/");
+        }, 1000);
     };
 
-    const handleDeleteGroup = () => {
-        deleteGroup(group.groupId);
-        navigate("/");
+    const handleDeleteGroup = async () => {
+        setShowDeleteOverlay(false);
+        setLoading(true);
+
+        const result = await deleteGroup(group.group_id);
+
+        setLoading(false);
+
+        if (!result.success) {
+            setMessage(result.error || "Failed to delete group.");
+            return;
+        }
+
+        setMessage("Group deleted successfully!");
+
+        setTimeout(() => {
+            navigate("/");
+        }, 1000);
     };
 
     return (
         <div className="edit-group-container">
+
+            {loading && <LoadingOverlay />}
+
+            {message && (
+                <MessageOverlay
+                    message={message}
+                    onClose={() => setMessage("")}
+                />
+            )}
+
             <h2>Edit Group</h2>
 
             <div className="form-group">
@@ -68,12 +131,12 @@ const EditGroup = () => {
             <h3>Remove Members</h3>
             <div className="members-list">
                 {members.map(member => (
-                    <div key={member.userId} className="member-item">
-                        <span>{member.username}</span>
+                    <div key={member.id} className="member-item">
+                        <span>{member.name}</span>
                         <input
                             type="checkbox"
-                            checked={removeUserIds.includes(member.userId)}
-                            onChange={() => toggleRemoveUser(member.userId)}
+                            checked={removeUserIds.includes(member.id)}
+                            onChange={() => toggleRemoveUser(member.id)}
                         />
                     </div>
                 ))}
@@ -91,7 +154,10 @@ const EditGroup = () => {
                     Delete Group
                 </button>
 
-                <button className="btn back-btn" onClick={() => navigate("/")}>
+                <button
+                    className="btn back-btn"
+                    onClick={() => navigate("/")}
+                >
                     Back
                 </button>
             </div>

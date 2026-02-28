@@ -18,12 +18,12 @@ exports.getGroups = (req, res) => {
 
 exports.createGroup = (req, res) => {
     const { group_name, group_password, user_id } = req.body;
+    console.log(req.body);
 
     if (!group_name || !group_password || !user_id) {
         return res.json({ success: false, error: "All fields required" });
     }
 
-    // Check if group name already exists
     const checkSql = "SELECT * FROM groups_info WHERE group_name = ?";
 
     db.query(checkSql, [group_name], (err, results) => {
@@ -40,7 +40,7 @@ exports.createGroup = (req, res) => {
         `;
 
         db.query(insertSql, [group_name, group_password, user_id], (err, result) => {
-            if (err) return res.status(500).json({ success: false, error: err });
+            if (err) return res.status(500).json({ success: false, error: err.sqlMessage || "Server error" });
 
             const groupId = result.insertId;
 
@@ -51,7 +51,7 @@ exports.createGroup = (req, res) => {
             `;
 
             db.query(mapSql, [user_id, groupId], (err) => {
-                if (err) return res.status(500).json({ success: false, error: err });
+                if (err) return res.status(500).json({ success: false, error: err.sqlMessage || "Server error" });
 
                 res.json({
                     success: true,
@@ -180,57 +180,136 @@ exports.deleteGroup = (req, res) => {
 };
 
 
-exports.editGroup = async (req, res) => {
-    try {
-        const { groupId, groupName, groupCode, removeUserIds = [] } = req.body;
+exports.editGroup = (req, res) => {
+    const { groupId, groupName, groupCode, removeUserIds = [] } = req.body;
 
-        // 1️⃣ Check if group exists
-        const [existing] = await db.query(
-            "SELECT * FROM groups WHERE group_id = ?",
-            [groupId]
-        );
+    if (!groupId) {
+        return res.status(400).json({
+            success: false,
+            message: "Group ID required"
+        });
+    }
+
+    // 1️⃣ Check if group exists
+    const checkSql = "SELECT * FROM groups_info WHERE group_id = ?";
+
+    db.query(checkSql, [groupId], (err, existing) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ success: false, message: "Server error" });
+        }
 
         if (existing.length === 0) {
-            return res.status(404).json({ message: "Group not found" });
+            return res.status(404).json({ success: false, message: "Group not found" });
         }
+
+        const currentGroup = existing[0];
 
         // 2️⃣ If name is changing → check uniqueness
-        if (groupName) {
-            const [nameCheck] = await db.query(
-                "SELECT * FROM groups WHERE group_name = ? AND group_id != ?",
-                [groupName, groupId]
-            );
+        if (groupName && groupName !== currentGroup.group_name) {
+            const nameCheckSql =
+                "SELECT * FROM groups_info WHERE group_name = ? AND group_id != ?";
 
-            if (nameCheck.length > 0) {
-                return res.status(400).json({
-                    message: "Group name already exists"
-                });
-            }
+            db.query(nameCheckSql, [groupName, groupId], (err, nameCheck) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ success: false, message: "Server error" });
+                }
+
+                if (nameCheck.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Group name already exists"
+                    });
+                }
+
+                updateGroup();
+            });
+        } else {
+            updateGroup();
         }
 
-        // 3️⃣ Update group
-        await db.query(
-            `UPDATE groups 
-             SET group_name = COALESCE(?, group_name),
-                 group_code = COALESCE(?, group_code)
-             WHERE group_id = ?`,
-            [groupName, groupCode, groupId]
-        );
+        // 3️⃣ Update function
+        function updateGroup() {
+            const newName = groupName || currentGroup.group_name;
 
-        // 4️⃣ Remove users from group_members mapping
-        if (removeUserIds.length > 0) {
-            await db.query(
-                `DELETE FROM group_members 
-                 WHERE group_id = ? 
-                 AND user_id IN (?)`,
-                [groupId, removeUserIds]
-            );
+            // 🔥 IMPORTANT FIX:
+            // If groupCode is empty string, keep old code
+            const newCode =
+                groupCode && groupCode.trim() !== ""
+                    ? groupCode
+                    : currentGroup.group_code;
+
+            const updateSql = `
+                UPDATE groups_info
+                SET group_name = ?, group_code = ?
+                WHERE group_id = ?
+            `;
+
+            db.query(updateSql, [newName, newCode, groupId], (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ success: false, message: "Server error" });
+                }
+
+                // 4️⃣ Remove users if provided
+                if (removeUserIds.length > 0) {
+                    const deleteSql = `
+                        DELETE FROM user_group_map
+                        WHERE group_id = ?
+                        AND user_id IN (?)
+                    `;
+
+                    db.query(deleteSql, [groupId, removeUserIds], (err) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({
+                                success: false,
+                                message: "Failed to remove users"
+                            });
+                        }
+
+                        return res.json({
+                            success: true,
+                            message: "Group updated successfully"
+                        });
+                    });
+                } else {
+                    return res.json({
+                        success: true,
+                        message: "Group updated successfully"
+                    });
+                }
+            });
+        }
+    });
+};
+
+exports.getGroupMembers = (req, res) => {
+    const { groupId } = req.body;
+
+    const sql = `
+        SELECT 
+            u.id,
+            u.name
+        FROM user_group_map gu
+        INNER JOIN users u 
+            ON gu.user_id = u.id
+        WHERE gu.group_id = ?
+    `;
+
+    db.query(sql, [groupId], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to retrieve group members"
+            });
         }
 
-        res.json({ message: "Group updated successfully" });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server error" });
-    }
+        res.json({
+            success: true,
+            members: results
+        });
+    });
 };

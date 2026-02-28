@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
 
             if (data.success) {
-                const loggedUser = { name: username, id: data.user_id };
+                const loggedUser = data.user;
                 setUser(loggedUser);
                 localStorage.setItem("galleryUser", JSON.stringify(loggedUser));
                 return { success: true };

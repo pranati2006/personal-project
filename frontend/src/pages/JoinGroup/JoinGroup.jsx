@@ -3,6 +3,8 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { GroupContext } from "../../context/GroupContext";
 import { AuthContext } from "../../context/AuthContext";
+import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
+import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
 
 const JoinGroup = () => {
     const navigate = useNavigate();
@@ -11,29 +13,36 @@ const JoinGroup = () => {
 
     const [groupName, setGroupName] = useState("");
     const [groupCode, setGroupCode] = useState("");
-    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setMessage("");
 
         if (!groupName.trim() || !groupCode.trim()) {
-            setError("Please enter both group name and group code.");
+            setMessage("Please enter both group name and group code.");
             return;
         }
 
-        const result = joinGroup({
+        setLoading(true);
+
+        const result = await joinGroup(
             groupName,
-            groupCode,
-            userId: user.id
-        });
+            groupCode
+        );
+
+        setLoading(false);
 
         if (!result.success) {
-            setError(result.message);
+            setMessage(result.error || "Failed to join group.");
             return;
         }
 
-        // success → go back to home
-        navigate("/");
+        setMessage("Successfully joined group!");
+
+        setGroupCode("");
+        setGroupName("");
     };
 
     const handleBack = () => {
@@ -42,9 +51,17 @@ const JoinGroup = () => {
 
     return (
         <div className="join-group-container">
-            <h2>Join Group</h2>
 
-            {error && <div className="error">{error}</div>}
+            {loading && <LoadingOverlay />}
+
+            {message && (
+                <MessageOverlay
+                    message={message}
+                    onClose={() => setMessage("")}
+                />
+            )}
+
+            <h2>Join Group</h2>
 
             <form onSubmit={handleSubmit}>
                 <div className="form-group">

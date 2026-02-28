@@ -11,7 +11,6 @@ export const GroupProvider = ({ children }) => {
     const { user } = useContext(AuthContext);
     const [groups, setGroups] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
-    const [photos, setPhotos] = useState([]);
 
     useEffect(() => {
         if (user) {
@@ -41,6 +40,7 @@ export const GroupProvider = ({ children }) => {
     // CREATE GROUP
     const createGroup = async (groupName, groupCode) => {
         try {
+            console.log("USER:", user);
             const res = await fetch(
                 "http://localhost:5000/api/groups/create",
                 {
@@ -57,7 +57,7 @@ export const GroupProvider = ({ children }) => {
             const data = await res.json();
 
             if (data.success) {
-                fetchGroups(); // refresh
+                fetchGroups();
                 return { success: true };
             }
 
@@ -116,7 +116,6 @@ export const GroupProvider = ({ children }) => {
 
             if (data.success) {
                 fetchGroups();
-                setSelectedGroup(null);
                 return { success: true };
             }
 
@@ -147,7 +146,6 @@ export const GroupProvider = ({ children }) => {
 
             if (data.success) {
                 fetchGroups();
-                setSelectedGroup(null);
                 return { success: true };
             }
 
@@ -164,7 +162,7 @@ export const GroupProvider = ({ children }) => {
     const editGroup = async ({ groupId, groupName, groupCode, removeUserIds = [] }) => {
         try {
             const res = await fetch("http://localhost:5000/api/groups/edit", {
-                method: "PUT",
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -182,8 +180,7 @@ export const GroupProvider = ({ children }) => {
                 throw new Error(data.message);
             }
 
-            // Refresh groups after edit
-            await fetchUserGroups();
+            fetchGroups();
 
             return { success: true };
         } catch (error) {
@@ -201,7 +198,6 @@ export const GroupProvider = ({ children }) => {
             createGroup,
             joinGroup,
             fetchGroups,
-
             deleteGroup,
             editGroup,
             leaveGroup
