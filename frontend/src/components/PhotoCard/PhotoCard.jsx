@@ -26,8 +26,8 @@ const PhotoCard = ({
 
                 {/* Info */}
                 <div className="photo-info">
-                    <p>Uploaded by: {photo.uploadedByName}</p>
-                    <p>Date: {photo.uploadedAt}</p>
+                    <p>Uploaded by: {photo.uploaded_name}</p>
+                    <p>Date: {photo.uploaded_at}</p>
                 </div>
 
             </div>

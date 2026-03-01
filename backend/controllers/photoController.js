@@ -67,9 +67,10 @@ exports.getGroupPhotos = (req, res) => {
     const { groupId } = req.params;
 
     const sql = `
-        SELECT gp.photo_id, gp.photo_link, gp.uploaded_by, gp.uploaded_at
+        SELECT gp.photo_id, gp.photo_link, gp.uploaded_by, gp.uploaded_at,u.name AS uploaded_name
         FROM group_photos gp
         JOIN group_photo_map gpm ON gp.photo_id = gpm.photo_id
+        JOIN users u ON gp.uploaded_by = u.id
         WHERE gpm.group_id = ?
         ORDER BY gp.uploaded_at DESC
     `;
