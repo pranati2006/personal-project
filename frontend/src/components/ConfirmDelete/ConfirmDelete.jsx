@@ -1,4 +1,5 @@
 import React from "react";
+import "./ConfirmDelete.css";
 
 const DeleteOverlay = ({ onConfirm, onCancel }) => {
     return (

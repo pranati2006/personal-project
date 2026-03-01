@@ -5,6 +5,7 @@ import { GroupContext } from "../../context/GroupContext";
 import { AuthContext } from "../../context/AuthContext";
 import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
 import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
+import "./JoinGroup.css";
 
 const JoinGroup = () => {
     const navigate = useNavigate();

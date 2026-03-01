@@ -5,7 +5,7 @@ import { GroupContext } from "../../context/GroupContext";
 import DeleteOverlay from "../../components/ConfirmDelete/ConfirmDelete";
 import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
 import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
-
+import "./Home.css";
 const GroupsList = () => {
     const navigate = useNavigate();
     const { user, logout } = useContext(AuthContext);

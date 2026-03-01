@@ -5,6 +5,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
 import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
+import "./CreateGroup.css";
 
 const CreateGroup = () => {
     const { createGroup } = useContext(GroupContext);

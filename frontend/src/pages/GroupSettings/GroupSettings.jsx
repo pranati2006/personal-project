@@ -1,10 +1,11 @@
-import React, { useContext, useState,useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { GroupContext } from "../../context/GroupContext";
 import DeleteOverlay from "../../components/ConfirmDelete/ConfirmDelete";
 import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
 import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
 import { fetchGroupMembers } from "../../context/GroupAPI";
+import "./GroupSettings.css";
 
 const EditGroup = () => {
     const { id } = useParams();

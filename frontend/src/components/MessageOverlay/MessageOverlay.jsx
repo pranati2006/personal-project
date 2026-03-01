@@ -1,4 +1,5 @@
 import React from "react";
+import "./MessageOverlay.css";
 
 const MessageOverlay = ({ message, onClose }) => {
     if (!message) return null; // hide if no message

@@ -7,6 +7,7 @@ import PhotoCard from "../../components/PhotoCard/PhotoCard";
 import LoadingOverlay from "../../components/LoadingOverlay/LoadingOverlay";
 import MessageOverlay from "../../components/MessageOverlay/MessageOverlay";
 import { getGroupPhotos, addPhotosToGroup, deletePhotosFromGroup } from "../../context/GroupAPI";
+import "./Group.css";
 
 const GroupGallery = () => {
     const { id } = useParams();
